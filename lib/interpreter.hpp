@@ -71,7 +71,6 @@ const Instruction* Interpreter::decode(uint16_t opcode) {
     };
     auto it = std::find_if(instructions.begin(), instructions.end(), predicate);
     if (it == instructions.end()) {
-        std::cout << to_hex(opcode >> 12) << std::endl;
         return nullptr;
     }
 

@@ -6,7 +6,10 @@
 
 class CommandExecutor {
 private:
-    std::unique_ptr<BaseInterpreter> interpreter_ptr;
+    BaseInterpreter *interpreter_ptr;
+
+    static const uint16_t NEXT_PC = 2;
+    static const uint16_t SKIP_PC = 4;
 
     void cls();
     void ret();
@@ -161,8 +164,6 @@ void CommandExecutor::execute(const Instruction *instruction, uint16_t opcode) {
             ld_vx_i(opcode);
             break;
     }
-
-    std::cout << to_hex(opcode) << std::endl;
 }
 
 // 0x00E0
@@ -216,7 +217,7 @@ void CommandExecutor::se_vx_vy(uint16_t opcode) {
     uint8_t vx = interpreter_ptr->registers[x];
     uint8_t vy = interpreter_ptr->registers[y];
 
-    uint16_t pointer = vx == vy ? 4 : 2;
+    uint16_t pointer = vx == vy ? SKIP_PC : NEXT_PC;
     interpreter_ptr->program_counter += pointer;
 }
 
@@ -226,7 +227,7 @@ void CommandExecutor::ld_vx_byte(uint16_t opcode) {
     uint8_t kk = opcode & 0x00FF;
 
     interpreter_ptr->registers[x] = kk;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x7xkk
@@ -235,7 +236,7 @@ void CommandExecutor::add_byte(uint16_t opcode) {
     uint8_t kk = opcode & 0x00FF;
 
     interpreter_ptr->registers[x] += kk;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy0
@@ -244,7 +245,7 @@ void CommandExecutor::ld_vx_vy(uint16_t opcode) {
     uint8_t y = (opcode & 0x00F0) >> 4;
 
     interpreter_ptr->registers[x] = interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy1
@@ -253,7 +254,7 @@ void CommandExecutor::or_vx_vy(uint16_t opcode) {
     uint8_t y = (opcode & 0x00F0) >> 4;
 
     interpreter_ptr->registers[x] |= interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy2
@@ -262,7 +263,7 @@ void CommandExecutor::add_VX_VY(uint16_t opcode) {
     uint8_t y = (opcode & 0x00F0) >> 4;
 
     interpreter_ptr->registers[x] &= interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy3
@@ -271,7 +272,7 @@ void CommandExecutor::xor_vx_vy(uint16_t opcode) {
     uint8_t y = (opcode & 0x00F0) >> 4;
 
     interpreter_ptr->registers[x] ^= interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy4
@@ -283,7 +284,7 @@ void CommandExecutor::add_vx_vy_carry(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = vy > (0xFF - vx) ? 1 : 0;
     interpreter_ptr->registers[x] += interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy5
@@ -295,7 +296,7 @@ void CommandExecutor::sub_vx_vy(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = vx > vy ? 1 : 0;
     interpreter_ptr->registers[x] -= interpreter_ptr->registers[y];
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy6
@@ -304,7 +305,7 @@ void CommandExecutor::shr_vx_vy(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = interpreter_ptr->registers[x] & 0x1;
     interpreter_ptr->registers[x] >>= 1;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xy7
@@ -316,7 +317,7 @@ void CommandExecutor::subn_vx_vy(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = vy > vx ? 1 : 0;
     interpreter_ptr->registers[x] = vy - vx;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x8xyE
@@ -325,7 +326,7 @@ void CommandExecutor::shl_vx(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = interpreter_ptr->registers[x] >> 7;
     interpreter_ptr->registers[x] <<= 1;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0x9xy0
@@ -335,7 +336,7 @@ void CommandExecutor::sne_vx_vy(uint16_t opcode) {
     uint8_t vx = interpreter_ptr->registers[x];
     uint8_t vy = interpreter_ptr->registers[y];
 
-    uint16_t pointer = vx != vy ? 4 : 2;
+    uint16_t pointer = vx != vy ? SKIP_PC : NEXT_PC;
     interpreter_ptr->program_counter += pointer;
 }
 
@@ -344,7 +345,7 @@ void  CommandExecutor::ld_i_addr(uint16_t opcode) {
     uint16_t nnn = opcode & 0x0FFF;
 
     interpreter_ptr->index_register = nnn;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xBnnn
@@ -359,10 +360,10 @@ void CommandExecutor::jp_v0_addr(uint16_t opcode) {
 void CommandExecutor::rnd_vy_byte(uint16_t opcode) {
     uint8_t k = (opcode & 0x0F00) >> 8;
     uint8_t kk = opcode & 0x00FF;
-    auto rnd = rand() % 256;
+    uint8_t rnd = rand() % 256;
 
     interpreter_ptr->registers[k] = rnd & kk;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xDxyn
@@ -375,7 +376,7 @@ void CommandExecutor::drw_vy_vy_n(uint16_t opcode) {
     auto memory = &interpreter_ptr->memory[interpreter_ptr->index_register];
 
     interpreter_ptr->registers[0xF] = interpreter_ptr->framebuffer->draw(memory, len, vx, vy);
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xEx9E
@@ -383,8 +384,8 @@ void CommandExecutor::skp_vx(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
     uint8_t vx = interpreter_ptr->registers[x];
 
-    uint16_t pointer = interpreter_ptr->keyboard[vx] ? 4 : 2;
-    interpreter_ptr->program_counter = pointer;
+    uint16_t pointer = interpreter_ptr->keyboard[vx] ? SKIP_PC : NEXT_PC;
+    interpreter_ptr->program_counter += pointer;
 }
 
 // 0xExA1
@@ -392,8 +393,8 @@ void CommandExecutor::skpn_vx(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
     uint8_t vx = interpreter_ptr->registers[x];
 
-    uint16_t pointer = !interpreter_ptr->keyboard[vx] ? 4 : 2;
-    interpreter_ptr->program_counter = pointer;
+    uint16_t pointer = !interpreter_ptr->keyboard[vx] ? SKIP_PC : NEXT_PC;
+    interpreter_ptr->program_counter += pointer;
 }
 
 // 0xFx07
@@ -401,7 +402,7 @@ void CommandExecutor::ld_vx_dt(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
 
     interpreter_ptr->registers[x] = interpreter_ptr->delay_timer;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx0A
@@ -411,7 +412,7 @@ void CommandExecutor::ld_vx_k(uint16_t opcode) {
 
     interpreter_ptr->stop_execution_flag = 0x1;
     interpreter_ptr->continue_execution_key = vx;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx15
@@ -420,7 +421,7 @@ void CommandExecutor::ld_dt_vx(uint16_t opcode) {
     uint8_t vx = interpreter_ptr->registers[x];
 
     interpreter_ptr->delay_timer = vx;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx18
@@ -429,7 +430,7 @@ void CommandExecutor::ld_st_vx(uint16_t opcode) {
     uint8_t vx = interpreter_ptr->registers[x];
 
     interpreter_ptr->sound_timer = vx;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx1E
@@ -439,15 +440,15 @@ void CommandExecutor::add_i_vx(uint16_t opcode) {
 
     interpreter_ptr->registers[0xF] = interpreter_ptr->index_register + vx > 0x0FFF ? 1 : 0;
     interpreter_ptr->index_register += vx;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx29
 void CommandExecutor::ld_f_vx(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
 
-    interpreter_ptr->index_register = 0x0 + (interpreter_ptr->registers[x] * 0.5);
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->index_register = interpreter_ptr->registers[x] * 5;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx33
@@ -459,7 +460,7 @@ void CommandExecutor::ld_b_vx(uint16_t opcode) {
     interpreter_ptr->memory[index] = vx / 100;
     interpreter_ptr->memory[index + 1] = (vx / 10) % 10;
     interpreter_ptr->memory[index + 2] = (vx % 100) % 10;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx55
@@ -467,12 +468,10 @@ void CommandExecutor::ld_i_vx(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
     uint16_t index = interpreter_ptr->index_register;
 
-    for (auto i = 0; i < x; i++) {
-        interpreter_ptr->memory[index + i] = interpreter_ptr->registers[i];
-    }
+    std::memcpy(&interpreter_ptr->registers[index], &interpreter_ptr->memory[index], x);
 
-    interpreter_ptr->index_register += x;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->index_register += x + 1;
+    interpreter_ptr->program_counter += NEXT_PC;
 }
 
 // 0xFx65
@@ -480,10 +479,8 @@ void CommandExecutor::ld_vx_i(uint16_t opcode) {
     uint8_t x = (opcode & 0x0F00) >> 8;
     uint16_t index = interpreter_ptr->index_register;
 
-    for (auto i = 0; i < x; i++) {
-        interpreter_ptr->registers[i] = interpreter_ptr->memory[index + i];
-    }
+    std::memcpy(&interpreter_ptr->memory[index], &interpreter_ptr->registers[index], x);
 
-    interpreter_ptr->index_register += x;
-    interpreter_ptr->program_counter += 2;
+    interpreter_ptr->index_register += x + 1;
+    interpreter_ptr->program_counter += NEXT_PC;
 }

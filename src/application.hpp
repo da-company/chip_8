@@ -4,6 +4,9 @@
 
 class Application {
 private:
+    static const int CPU_TICK = 16;
+    static const int CPU_UPDATE_RATE = 500;
+
     std::unique_ptr<Interpreter> interpreter_ptr;
     std::unique_ptr<Render> render_ptr;
     std::unique_ptr<Framebuffer> framebuffer_ptr;
@@ -56,8 +59,8 @@ const int Application::run() {
         }
 
         auto end_frame = SDL_GetTicks();
-        if (end_frame - begin_frame < 1000 / 500) {
-            SDL_Delay(1000 / 500 - (end_frame - begin_frame));
+        if (end_frame - begin_frame < 1000 / CPU_UPDATE_RATE) {
+            SDL_Delay(1000 / CPU_UPDATE_RATE - (end_frame - begin_frame));
         }
     }
     
@@ -79,15 +82,15 @@ void Application::handle(SDL_Event &event) {
 void Application::execute_opcode() {
     auto current_frame = SDL_GetTicks();
 
-    if (current_frame - last_update_frame < 2) {
+    if (current_frame - last_update_frame < CPU_TICK) {
         return;
     }
+    interpreter_ptr->update_timers();
 
     auto opcode = interpreter_ptr->fetch_opcode();
     auto instruction = interpreter_ptr->decode(opcode);
 
     interpreter_ptr->execute(instruction, opcode);
-    interpreter_ptr->update_timers();
 
     last_update_frame = SDL_GetTicks();
 }

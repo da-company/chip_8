@@ -5,8 +5,8 @@ class BaseInterpreter {
 public:
     std::array<uint8_t, 4096> memory;
     std::array<uint8_t, 16> registers;
-    std::array<bool, 16> keyboard;
     std::array<uint16_t, 16> stack;
+    std::array<bool, 16> keyboard;
 
     uint8_t stack_pointer;
     uint8_t sound_timer;

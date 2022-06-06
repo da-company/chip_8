@@ -42,6 +42,15 @@ void Render::draw(const std::vector<uint8_t> &memory) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_Rect clean_rect = {
+        screen_rect.x * PIXEL_SIZE,
+        screen_rect.y * PIXEL_SIZE,
+        screen_rect.w * PIXEL_SIZE,
+        screen_rect.h * PIXEL_SIZE
+    };
+    SDL_RenderFillRect(renderer, &clean_rect);
+
     SDL_SetRenderDrawColor(renderer, 0, 170, 169, 255);
     for (auto i = 0; i < screen_rect.w * screen_rect.h; i++) {
         auto x = screen_rect.x + i % screen_rect.w;
